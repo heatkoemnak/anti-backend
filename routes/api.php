@@ -6,6 +6,7 @@ use App\Http\Controllers\ProductController;
 
 use App\Http\Controllers\UserAuthController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\ContactController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,4 +45,5 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::apiResource('products', ProductController::class);
 Route::apiResource('events', EventController::class);
-
+Route::get('/contacts', [ContactController::class, 'index']);
+Route::post('/contacts', [ContactController::class, 'store']);
