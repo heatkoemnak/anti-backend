@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 
 use App\Http\Controllers\UserAuthController;
+use App\Http\Controllers\EventController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -41,3 +43,5 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::apiResource('products', ProductController::class);
+Route::apiResource('events', EventController::class);
+
