@@ -43,6 +43,7 @@ class ProductController extends Controller
             'location' => 'required|string|max:255',
             'contact_number' => 'required|string|max:15',
             'price' => 'required|numeric',
+            'img' => 'require|file',
         ]);
 
         $product = Product::create($validatedData);
@@ -95,6 +96,7 @@ class ProductController extends Controller
             'location' => 'sometimes|required|string|max:255',
             'contact_number' => 'sometimes|required|string|max:15',
             'price' => 'sometimes|required|numeric',
+            'img'=> 'required'
         ]);
 
         $product = Product::find($id);
