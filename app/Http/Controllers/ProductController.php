@@ -43,8 +43,16 @@ class ProductController extends Controller
             'location' => 'required|string|max:255',
             'contact_number' => 'required|string|max:15',
             'price' => 'required|numeric',
-            'img' => 'require|file',
+            'img' => 'required|file',
         ]);
+
+        // Log validated data
+        // \Log::info('Validated Data: ', $validatedData);
+
+        // Save the uploaded image
+        if ($request->hasFile('img')) {
+            $validatedData['img'] = $request->file('img')->store('images', 'public');
+        }
 
         $product = Product::create($validatedData);
 
@@ -96,7 +104,7 @@ class ProductController extends Controller
             'location' => 'sometimes|required|string|max:255',
             'contact_number' => 'sometimes|required|string|max:15',
             'price' => 'sometimes|required|numeric',
-            'img'=> 'required'
+            'img' => 'required',
         ]);
 
         $product = Product::find($id);
