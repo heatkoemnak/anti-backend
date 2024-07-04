@@ -44,6 +44,8 @@ class ProductController extends Controller
             'contact_number' => 'required|string|max:15',
             'price' => 'required|numeric',
             'img' => 'required|file',
+            'description' => 'required|string|max:255', // Add this line
+
         ]);
 
         // Log validated data
@@ -105,6 +107,8 @@ class ProductController extends Controller
             'contact_number' => 'sometimes|required|string|max:15',
             'price' => 'sometimes|required|numeric',
             'img' => 'required',
+            'description' => 'nullable|string|max:255', // Nullable if default value is set
+
         ]);
 
         $product = Product::find($id);
