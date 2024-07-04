@@ -10,9 +10,9 @@ class UserAuthController extends Controller
     public function get_all_users()
     {
         $users = User::get();
-        return response()->json(['message' => 'User Deleted',$users], 200);
+        return response()->json($users, 200);
     }
-    
+
     public function register(Request $request){
         $registerUserData = $request->validate([
             'name'=>'required|string',
@@ -44,12 +44,11 @@ class UserAuthController extends Controller
         }
         $token = $user->createToken($user->name.'-AuthToken')->plainTextToken;
         return response()->json([
-            'access_token' => $token,
+            'token' => $token,
         ]);
     }
     public function logout(){
         auth()->user()->tokens()->delete();
-
         return response()->json([
           "message"=>"logged out"
         ]);

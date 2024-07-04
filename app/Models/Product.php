@@ -14,6 +14,7 @@ class Product extends Model
         'location',
         'contact_number',
         'price',
+        'img',
     ];
     public $timestamps = false; // Disable automatic timestamps
 
