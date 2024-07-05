@@ -49,5 +49,5 @@ Route::get('/contacts', [ContactController::class, 'index']);
 Route::post('/contacts', [ContactController::class, 'store']);
 
 // extra - rate & comment on product
-Route::post('products/{id}/rate', [ProductController::class, 'rateProduct']);
-Route::post('products/{id}/comment', [ProductController::class, 'commentProduct']);
+Route::post('/products/{id}/rate', [ProductController::class, 'rateProduct']);
+Route::post('/products/{id}/comment', [ProductController::class, 'commentProduct']);

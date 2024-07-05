@@ -79,6 +79,9 @@ class ProductController extends Controller
             return response()->json(['message' => 'Product not found'], 404);
         }
 
+        // Add the full URL for the image
+        $product->img = url('storage/' . $product->img);
+
         return response()->json($product);
     }
 
@@ -108,7 +111,7 @@ class ProductController extends Controller
             'location' => 'sometimes|required|string|max:255',
             'contact_number' => 'sometimes|required|string|max:15',
             'price' => 'sometimes|required|numeric',
-            'img' => 'required',
+            'img' => 'required|file',
             'description' => 'nullable|string|max:255', // Nullable if default value is set
 
         ]);
@@ -118,6 +121,12 @@ class ProductController extends Controller
         if (is_null($product)) {
             return response()->json(['message' => 'Product not found'], 404);
         }
+
+
+        if ($request->hasFile('img')) {
+            $validatedData['img'] = $request->file('img')->store('images', 'public');
+        }
+
 
         $product->update($validatedData);
 
@@ -154,18 +163,28 @@ class ProductController extends Controller
             return response()->json(['message' => 'Product not found'], 404);
         }
 
-        // Assuming you have a Rating model and ratings table
-        $rating = new Rating;
-        $rating->product_id = $product->id;
-        $rating->rating = $request->input('rating');
-        $rating->save();
+        // // Assuming you have a Rating model and ratings table
+        // $rating = new Rating;
+        // $rating->product_id = $product->id;
+        // $rating->rating = $request->input('rating');
+        // $rating->save();
 
-        // Update product's average rating
-        $averageRating = Rating::where('product_id', $product->id)->avg('rating');
-        $product->rating = $averageRating;
+        // // Update product's average rating
+        // $averageRating = Rating::where('product_id', $product->id)->avg('rating');
+        // $product->rating = $averageRating;
+        // $product->save();
+
+        // return response()->json(['message' => 'Rating added successfully', 'average_rating' => $averageRating]);
+        $product->ratings()->create([
+            'user_id' => auth()->id(),
+            'rating' => $request->rating,
+        ]);
+
+        // Optionally update the product's average rating
+        $product->average_rating = $product->ratings()->avg('rating');
         $product->save();
 
-        return response()->json(['message' => 'Rating added successfully', 'average_rating' => $averageRating]);
+        return response()->json(['message' => 'Rating submitted successfully'], 200);
     }
 
     public function commentProduct(Request $request, $id)
@@ -181,6 +200,7 @@ class ProductController extends Controller
 
         $comment = new Comment;
         $comment->product_id = $product->id;
+        $comment->user_id = auth()->id();
         $comment->comment = $request->input('comment');
         $comment->save();
 
