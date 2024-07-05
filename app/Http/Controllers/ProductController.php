@@ -16,7 +16,7 @@ class ProductController extends Controller
 
     public function index()
     {
-        return response()->json(Product::all());
+        return response()->json(Product::get());
     }
 
     /**
@@ -43,7 +43,7 @@ class ProductController extends Controller
             'location' => 'required|string|max:255',
             'contact_number' => 'required|string|max:15',
             'price' => 'required|numeric',
-            'img' => 'require|file',
+            // 'img' => 'require|file',
         ]);
 
         $product = Product::create($validatedData);

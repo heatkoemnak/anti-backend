@@ -1,31 +1,28 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Event;
+use App\Models\EventImage;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class EventController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of the resource with pagination.
      *
      * @return \Illuminate\Http\Response
      */
     public function index()
     {
-        return response()->json(Event::all());
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
+        $events = Event::with('images')->get();
+        foreach ($events as $event) {
+            foreach ($event->images as $image) {
+                $image->image_url = Storage::url($image->image_path);
+            }
+        }
+        return response()->json($events);
     }
 
     /**
@@ -36,17 +33,32 @@ class EventController extends Controller
      */
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
+        $request->validate([
             'event_name' => 'required|string|max:255',
-            'location' => 'required|string|max:255',
-            'start_time' => 'required|date_format:Y-m-d H:i:s',
-            'end_time' => 'required|date_format:Y-m-d H:i:s',
-            'date' => 'required|date',
+            'event_description' => 'required|string',
+            'event_date' => 'required|date',
+            'event_location' => 'required|string|max:255',
+            'event_images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $event = Event::create($validatedData);
+        $event = Event::create([
+            'name' => $request->event_name,
+            'description' => $request->event_description,
+            'date' => $request->event_date,
+            'location' => $request->event_location,
+        ]);
 
-        return response()->json($event, 201);
+        if ($request->hasFile('event_images')) {
+            foreach ($request->file('event_images') as $image) {
+                $path = $image->store('event_images', 'public');
+                EventImage::create([
+                    'event_id' => $event->id,
+                    'image_path' => $path,
+                ]);
+            }
+        }
+
+        return response()->json(['message' => 'Event created successfully!'], 201);
     }
 
     /**
@@ -57,24 +69,17 @@ class EventController extends Controller
      */
     public function show($id)
     {
-        $event = Event::find($id);
+        $event = Event::with('images')->find($id);
 
         if (is_null($event)) {
             return response()->json(['message' => 'Event not found'], 404);
         }
 
-        return response()->json($event);
-    }
+        foreach ($event->images as $image) {
+            $image->image_url = Storage::url($image->image_path);
+        }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
+        return response()->json($event);
     }
 
     /**
@@ -90,7 +95,7 @@ class EventController extends Controller
             'event_name' => 'sometimes|required|string|max:255',
             'location' => 'sometimes|required|string|max:255',
             'start_time' => 'sometimes|required|date_format:Y-m-d H:i:s',
-            'end_time' => 'sometimes|required|date_format:Y-m-d H:i:s',
+            'end_time' => 'sometimes|required|date_format:Y-m-d H:i:s|after:start_time',
             'date' => 'sometimes|required|date',
         ]);
 
@@ -122,5 +127,37 @@ class EventController extends Controller
         $event->delete();
 
         return response()->json(['message' => 'Event deleted successfully']);
+    }
+
+    /**
+     * Search for events.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function search(Request $request)
+    {
+        $query = Event::query();
+
+        if ($request->has('event_name')) {
+            $query->where('name', 'like', '%' . $request->query('event_name') . '%');
+        }
+
+        if ($request->has('location')) {
+            $query->where('location', 'like', '%' . $request->query('location') . '%');
+        }
+
+        if ($request->has('date')) {
+            $query->whereDate('date', $request->query('date'));
+        }
+
+        $events = $query->with('images')->get();
+        foreach ($events as $event) {
+            foreach ($event->images as $image) {
+                $image->image_url = Storage::url($image->image_path);
+            }
+        }
+
+        return response()->json($events);
     }
 }

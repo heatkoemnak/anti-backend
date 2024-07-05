@@ -13,18 +13,21 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('events', function (Blueprint $table) {
+        Schema::create('wastes', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('description');
-            $table->date('date');
+            $table->string('owner')->nullable();
+            $table->string('categories');
+            $table->string('contact_umber');
+            $table->string('price');
             $table->string('location');
+            $table->string('item_amount');
+            $table->string('description')->nullable();
             $table->timestamps();
         });
-
-        Schema::create('event_images', function (Blueprint $table) {
+        Schema::create('waste_images', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('event_id')->constrained('events')->onDelete('cascade');
+            $table->foreignId('waste_id')->constrained('wastes')->onDelete('cascade');
             $table->string('image_path');
             $table->timestamps();
         });
@@ -37,7 +40,7 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('event_images');
-        Schema::dropIfExists('events');
+        Schema::dropIfExists('wastes');
+        Schema::dropIfExists('waste_images');
     }
 };
