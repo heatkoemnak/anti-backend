@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Product;
+use App\Models\Rating;
+use App\Models\Comment;
 
 class ProductController extends Controller
 {
@@ -139,5 +141,49 @@ class ProductController extends Controller
         $product->delete();
 
         return response()->json(['message' => 'Product deleted successfully']);
+    }
+    //rate & comment on product
+    public function rateProduct(Request $request, $id)
+    {
+        $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+        ]);
+
+        $product = Product::find($id);
+        if (is_null($product)) {
+            return response()->json(['message' => 'Product not found'], 404);
+        }
+
+        // Assuming you have a Rating model and ratings table
+        $rating = new Rating;
+        $rating->product_id = $product->id;
+        $rating->rating = $request->input('rating');
+        $rating->save();
+
+        // Update product's average rating
+        $averageRating = Rating::where('product_id', $product->id)->avg('rating');
+        $product->rating = $averageRating;
+        $product->save();
+
+        return response()->json(['message' => 'Rating added successfully', 'average_rating' => $averageRating]);
+    }
+
+    public function commentProduct(Request $request, $id)
+    {
+        $request->validate([
+            'comment' => 'required|string',
+        ]);
+
+        $product = Product::find($id);
+        if (is_null($product)) {
+            return response()->json(['message' => 'Product not found'], 404);
+        }
+
+        $comment = new Comment;
+        $comment->product_id = $product->id;
+        $comment->comment = $request->input('comment');
+        $comment->save();
+
+        return response()->json(['message' => 'Comment added successfully']);
     }
 }

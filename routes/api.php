@@ -23,10 +23,10 @@ Route::post('register', [UserAuthController::class, 'register']);
 Route::post('login', [UserAuthController::class, 'login']);
 
 
-  Route::get('/users', [UserAuthController::class, 'get_all_users']);
-  Route::get('/users/{id}', [UserAuthController::class, 'show']);
-  Route::put('/users/{id}', [UserAuthController::class, 'update']);
-  Route::delete('/users/{id}', [UserAuthController::class, 'destroy']);
+Route::get('/users', [UserAuthController::class, 'get_all_users']);
+Route::get('/users/{id}', [UserAuthController::class, 'show']);
+Route::put('/users/{id}', [UserAuthController::class, 'update']);
+Route::delete('/users/{id}', [UserAuthController::class, 'destroy']);
 
 // Route::middleware('auth:sanctum')->group(function () {
 // });
@@ -47,3 +47,7 @@ Route::apiResource('/products', ProductController::class);
 Route::apiResource('events', EventController::class);
 Route::get('/contacts', [ContactController::class, 'index']);
 Route::post('/contacts', [ContactController::class, 'store']);
+
+// extra - rate & comment on product
+Route::post('products/{id}/rate', [ProductController::class, 'rateProduct']);
+Route::post('products/{id}/comment', [ProductController::class, 'commentProduct']);
