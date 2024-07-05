@@ -45,8 +45,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::apiResource('/products', ProductController::class);
 Route::apiResource('events', EventController::class);
+// CONTACT
 Route::get('/contacts', [ContactController::class, 'index']);
 Route::post('/contacts', [ContactController::class, 'store']);
+Route::put('/contacts/{id}', [ContactController::class, 'update']);
+Route::delete('/contacts/{id}', [ContactController::class, 'destroy']);
 
 // extra - rate & comment on product
 Route::post('/products/{id}/rate', [ProductController::class, 'rateProduct']);
