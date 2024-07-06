@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('contact');
             $table->integer('amount');
             $table->decimal('price', 8, 2);
-            $table->string('image')->nullable();
+            $table->string('img')->nullable();
             $table->string('description')->default('No description provided');
             $table->timestamps();
         });

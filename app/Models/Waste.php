@@ -9,6 +9,6 @@ class Waste extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'name', 'category', 'seller', 'location', 'contact', 'amount', 'price', 'image', 'description'
+        'name', 'category', 'seller', 'location', 'contact', 'amount', 'price', 'img', 'description'
     ];
 }

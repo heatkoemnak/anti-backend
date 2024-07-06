@@ -70,7 +70,7 @@ class WasteController extends Controller
             'contact' => 'sometimes|string|max:255',
             'amount' => 'sometimes|integer',
             'price' => 'sometimes|numeric',
-            'image' => 'nullable|string|max:255',
+            'image' => 'required|file',
             'description' => 'nullable|string',
         ]);
 
