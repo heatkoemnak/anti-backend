@@ -44,40 +44,14 @@ class ContactController extends Controller
 
     public function destroy($id)
     {
-        $contact = Contact::findOrFail($id);
+        $contact = Contact::find($id);
+
+        if (is_null($contact)) {
+            return response()->json(['message' => 'Contact not found'], 404);
+        }
+
         $contact->delete();
 
-        return response()->json(null, 204);
+        return response()->json(['message' => 'Contact deleted successfully']);
     }
-    public function update(Request $request, $id)
-{
-    $validatedData = $request->validate([
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|max:255',
-        'message' => 'required|nullable|string',
-    ]);
-
-    $contact = Contact::find($id);
-
-    if (is_null($contact)) {
-        return response()->json(['message' => 'Contact not found'], 404);
-    }
-
-    $contact->update($validatedData);
-
-    return response()->json($contact);
-}
-
-public function destroy($id)
-{
-    $contact = Contact::find($id);
-
-    if (is_null($contact)) {
-        return response()->json(['message' => 'Contact not found'], 404);
-    }
-
-    $contact->delete();
-
-    return response()->json(['message' => 'Contact deleted successfully']);
-}
 }
