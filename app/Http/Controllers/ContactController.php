@@ -8,22 +8,46 @@ use App\Models\Contact;
 
 class ContactController extends Controller
 {
-    public function index()
-    {
-        return response()->json(Contact::all());
-    }
-
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
+        $request->validate([
             'email' => 'required|email|max:255',
-            'message' => 'required|string',
         ]);
 
-        $contact = Contact::create($validatedData);
+        $contact = Contact::create([
+            'email' => $request->email,
+        ]);
+        $contact->save();
 
-        return response()->json($contact, 201);
+        return response()->json(['message' => 'Email saved successfully', 'contact' => $contact], 201);
+    }
+
+    public function index()
+    {
+        $contacts = Contact::all();
+        return response()->json($contacts);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'email' => 'required|email|max:255',
+        ]);
+
+        $contact = Contact::findOrFail($id);
+        $contact->update([
+            'email' => $request->email,
+        ]);
+
+        return response()->json($contact);
+    }
+
+    public function destroy($id)
+    {
+        $contact = Contact::findOrFail($id);
+        $contact->delete();
+
+        return response()->json(null, 204);
     }
     public function update(Request $request, $id)
 {

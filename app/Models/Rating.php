@@ -5,18 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Product extends Model
+class Rating extends Model
 {
-    use HasFactory;
-    protected $fillable = [
-        'name',
-        'owner_name',
-        'location',
-        'contact_number',
-        'price',
-        'img',
-    ];
-    public $timestamps = false; // Disable automatic timestamps
+    protected $fillable = ['product_id', 'user_id', 'rating'];
     public function ratings()
     {
         return $this->hasMany(Rating::class);
@@ -25,5 +16,16 @@ class Product extends Model
     public function comments()
     {
         return $this->hasMany(Comment::class);
+    }
+
+    // app/Models/Rating.php
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }
