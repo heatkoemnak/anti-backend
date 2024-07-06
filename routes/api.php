@@ -51,7 +51,7 @@ Route::get('/contacts', [ContactController::class, 'index']);
 Route::post('/contacts', [ContactController::class, 'store']);
 Route::put('/contacts/{id}', [ContactController::class, 'update']);
 Route::delete('/contacts/{id}', [ContactController::class, 'destroy']);
-Route::apiResource('wastes', WasteController::class);
+Route::apiResource('/wastes', WasteController::class);
 
 // extra - rate & comment on product
 Route::post('/products/{id}/rate', [ProductController::class, 'rateProduct']);

@@ -23,7 +23,7 @@ return new class extends Migration
             $table->integer('amount');
             $table->decimal('price', 8, 2);
             $table->string('image')->nullable();
-            $table->text('description')->nullable();
+            $table->string('description')->default('No description provided');
             $table->timestamps();
         });
     }
