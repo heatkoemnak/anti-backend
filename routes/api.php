@@ -9,6 +9,8 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\WasteController;
 
+use App\Http\Controllers\CartController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -56,3 +58,14 @@ Route::apiResource('/wastes', WasteController::class);
 // extra - rate & comment on product
 Route::post('/products/{id}/rate', [ProductController::class, 'rateProduct']);
 Route::post('/products/{id}/comment', [ProductController::class, 'commentProduct']);
+Route::post('/cart/add', 'CartController@addToCart');
+
+//add to card
+
+Route::middleware('auth:sanctum')->group(function () {
+  Route::get('/cart-items', [CartController::class, 'index']);
+  Route::post('/cart-items', [CartController::class, 'store']);
+  Route::get('/cart-items/{id}', [CartController::class, 'show']);
+  Route::put('/cart-items/{id}', [CartController::class, 'update']);
+  Route::delete('/cart-items/{id}', [CartController::class, 'destroy']);
+});
