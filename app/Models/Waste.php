@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class Waste extends Model
 {
     use HasFactory;
+
     protected $fillable = [
-        'name', 'category', 'seller', 'location', 'contact', 'amount', 'price', 'img', 'description'
+        'name', 'owner', 'price', 'categories', 'contact_number',
+        'location', 'item_amount', 'description', 'photo_path',
     ];
 }

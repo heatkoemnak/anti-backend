@@ -1,6 +1,4 @@
 <?php
-
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -11,15 +9,18 @@ class ContactController extends Controller
     public function store(Request $request)
     {
         $request->validate([
+            'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
+            'message' => 'nullable|string',
         ]);
 
         $contact = Contact::create([
+            'name' => $request->name,
             'email' => $request->email,
+            'message' => $request->message,
         ]);
-        $contact->save();
 
-        return response()->json(['message' => 'Email saved successfully', 'contact' => $contact], 201);
+        return response()->json(['message' => 'Contact saved successfully', 'contact' => $contact], 201);
     }
 
     public function index()
@@ -30,54 +31,33 @@ class ContactController extends Controller
 
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
+            'message' => 'nullable|string',
         ]);
 
-        $contact = Contact::findOrFail($id);
-        $contact->update([
-            'email' => $request->email,
-        ]);
+        $contact = Contact::find($id);
+
+        if (is_null($contact)) {
+            return response()->json(['message' => 'Contact not found'], 404);
+        }
+
+        $contact->update($validatedData);
 
         return response()->json($contact);
     }
 
     public function destroy($id)
     {
-        $contact = Contact::findOrFail($id);
+        $contact = Contact::find($id);
+
+        if (is_null($contact)) {
+            return response()->json(['message' => 'Contact not found'], 404);
+        }
+
         $contact->delete();
 
-        return response()->json(null, 204);
+        return response()->json(['message' => 'Contact deleted successfully']);
     }
-    public function update(Request $request, $id)
-{
-    $validatedData = $request->validate([
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|max:255',
-        'message' => 'required|nullable|string',
-    ]);
-
-    $contact = Contact::find($id);
-
-    if (is_null($contact)) {
-        return response()->json(['message' => 'Contact not found'], 404);
-    }
-
-    $contact->update($validatedData);
-
-    return response()->json($contact);
-}
-
-public function destroy($id)
-{
-    $contact = Contact::find($id);
-
-    if (is_null($contact)) {
-        return response()->json(['message' => 'Contact not found'], 404);
-    }
-
-    $contact->delete();
-
-    return response()->json(['message' => 'Contact deleted successfully']);
-}
 }
