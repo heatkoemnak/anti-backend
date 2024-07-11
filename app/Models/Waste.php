@@ -1,19 +1,17 @@
 <?php
 
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Ap\Models\WasteCate;
-use Ap\Models\WasteImage;
+
 class Waste extends Model
 {
-    use HasFactory;
+    protected $fillable = [
+        'name', 'owner', 'price', 'categories', 'contact_number',
+        'location', 'item_amount', 'description', 'photo',
+    ];
 
-    protected $guarded=[];
-
-    public function images()
-    {
-        return $this->hasMany(WasteImage::class);
-    }
+    // Your other model relationships or methods
 }
+

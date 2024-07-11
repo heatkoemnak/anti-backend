@@ -9,10 +9,12 @@ use App\Models\EventImage;
 class Event extends Model
 {
     use HasFactory;
-    protected $fillable = ['name', 'description', 'date', 'location'];
 
-    public function images()
-    {
-        return $this->hasMany(EventImage::class);
-    }
+    protected $fillable = [
+        'event_name',
+        'location',
+        'date',
+        'description',
+        'photo',
+    ];
 }

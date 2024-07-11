@@ -1,132 +1,133 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\Event;
-use App\Models\EventImage;
 use Illuminate\Http\Request;
+use App\Models\Event;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class EventController extends Controller
 {
     /**
-     * Display a listing of the resource with pagination.
+     * Display a listing of the events.
      *
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function index()
-    {
+    public function index(){
         $events = Event::with('images')->get();
-        foreach ($events as $event) {
             foreach ($event->images as $image) {
                 $image->image_url = Storage::url($image->image_path);
             }
-        }
         return response()->json($events);
     }
 
     /**
      * Store a newly created resource in storage.
+
      *
      * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'event_name' => 'required|string|max:255',
-            'event_description' => 'required|string',
-            'event_date' => 'required|date',
-            'event_location' => 'required|string|max:255',
-            'event_images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+        try {
+            $request->validate([
+                'event_name' => 'required|string|max:255',
+                'description' => 'required|string',
+                'date' => 'required|date',
+                'location' => 'required|string|max:255',
+                'photo.*' => 'nullable|file|mimes:jpg,jpeg,png', // Validation for images
+            ]);
 
-        $event = Event::create([
-            'name' => $request->event_name,
-            'description' => $request->event_description,
-            'date' => $request->event_date,
-            'location' => $request->event_location,
-        ]);
+            $event = new Event();
+            $event->event_name = $request->event_name;
+            $event->description = $request->description;
+            $event->date = $request->date;
+            $event->location = $request->location;
 
-        if ($request->hasFile('event_images')) {
-            foreach ($request->file('event_images') as $image) {
-                $path = $image->store('event_images', 'public');
-                EventImage::create([
-                    'event_id' => $event->id,
-                    'image_path' => $path,
-                ]);
+            // Handle event photo if uploaded
+            if ($request->hasFile('photo')) {
+                $photoPath = $request->file('photo')->store('events/photos', 'public');
+                $event->photo = $photoPath;
             }
-        }
 
-        return response()->json(['message' => 'Event created successfully!'], 201);
+            $event->save();
+
+            return response()->json(['message' => 'Event created successfully', 'event' => $event], 201);
+        } catch (\Exception $e) {
+            Log::error('Error creating event: ' . $e->getMessage());
+            return response()->json(['message' => 'Error creating event', 'error' => $e->getMessage()], 500);
+        }
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        $event = Event::with('images')->find($id);
-
-        if (is_null($event)) {
-            return response()->json(['message' => 'Event not found'], 404);
-        }
-
-        foreach ($event->images as $image) {
-            $image->image_url = Storage::url($image->image_path);
-        }
-
-        return response()->json($event);
-    }
-
-    /**
-     * Update the specified resource in storage.
+     * Update the specified event in storage.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
     {
-        $validatedData = $request->validate([
-            'event_name' => 'sometimes|required|string|max:255',
-            'location' => 'sometimes|required|string|max:255',
-            'start_time' => 'sometimes|required|date_format:Y-m-d H:i:s',
-            'end_time' => 'sometimes|required|date_format:Y-m-d H:i:s|after:start_time',
-            'date' => 'sometimes|required|date',
-        ]);
+        try {
+            $event = Event::findOrFail($id);
 
-        $event = Event::find($id);
+            $request->validate([
+                'event_name' => 'required|string|max:255',
+                'description' => 'required|string',
+                'date' => 'required|date',
+                'location' => 'required|string|max:255',
+                'photo.*' => 'nullable|file|mimes:jpg,jpeg,png', // Validation for images
+            ]);
 
-        if (is_null($event)) {
-            return response()->json(['message' => 'Event not found'], 404);
+            $event->event_name = $request->event_name;
+            $event->description = $request->description;
+            $event->date = $request->date;
+            $event->location = $request->location;
+
+            // Handle event photo update if uploaded
+            if ($request->hasFile('photo')) {
+                // Delete previous photo if exists
+                if ($event->photo && Storage::disk('public')->exists($event->photo)) {
+                    Storage::disk('public')->delete($event->photo);
+                }
+
+                $photoPath = $request->file('photo')->store('events/photos', 'public');
+                $event->photo = $photoPath;
+            }
+
+            $event->save();
+
+            return response()->json(['message' => 'Event updated successfully', 'event' => $event], 200);
+        } catch (\Exception $e) {
+            Log::error('Error updating event: ' . $e->getMessage());
+            return response()->json(['message' => 'Error updating event', 'error' => $e->getMessage()], 500);
         }
-
-        $event->update($validatedData);
-
-        return response()->json($event);
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove the specified event from storage.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function destroy($id)
     {
-        $event = Event::find($id);
+        try {
+            $event = Event::findOrFail($id);
 
-        if (is_null($event)) {
-            return response()->json(['message' => 'Event not found'], 404);
+            // Delete associated photo if exists
+            if ($event->photo && Storage::disk('public')->exists($event->photo)) {
+                Storage::disk('public')->delete($event->photo);
+            }
+
+            $event->delete();
+
+            return response()->json(['message' => 'Event deleted successfully'], 200);
+        } catch (\Exception $e) {
+            Log::error('Error deleting event: ' . $e->getMessage());
+            return response()->json(['message' => 'Error deleting event', 'error' => $e->getMessage()], 500);
         }
-
-        $event->delete();
-
-        return response()->json(['message' => 'Event deleted successfully']);
     }
 
     /**

@@ -4,147 +4,144 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Waste;
-use App\Models\WasteCate;
-use App\Models\WasteImage;
 use Illuminate\Support\Facades\Storage;
 
 class WasteController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function index()
     {
-        $wastes = Waste::with('images')->get();
-        return response()->json($wastes);
-    }
+        $wastes = Waste::all();
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        // Validate request data
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'owner' => 'nullable|string|max:255',
-            'categories' => 'required|string|max:225',
-            'location' => 'required|string|max:255',
-            'contact_number' => 'required|string|max:20',
-            'item_amount' => 'required|string|max:255',
-            'price' => 'required|string|max:20',
-            'description' => 'nullable|string',
-            'waste_images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
-
-        // Create Waste entry
-        $waste = Waste::create([
-            'name' => $request->name,
-            'owner' => $request->owner,
-            'categories' => $request->categories,
-            'location' => $request->location,
-            'contact_number' => $request->contact_number,
-            'item_amount' => $request->item_amount,
-            'price' => $request->price,
-            'description' => $request->description,
-        ]);
-
-        // Handle Waste images
-        if ($request->hasFile('waste_images')) {
-            foreach ($request->file('waste_images') as $image) {
-                $path = $image->store('waste_images', 'public');
-                WasteImage::create([
-                    'waste_id' => $waste->id,
-                    'image_path' => $path,
-                ]);
+        // Format photo URLs if photos exist
+        foreach ($wastes as $waste) {
+            if ($waste->photo) {
+                $waste->photo = array_map(function($photo) {
+                    return url('storage/' . $photo);
+                }, explode(',', $waste->photo));
             }
         }
 
-        return response()->json(['message' => 'Waste posted successfully!'], 201);
+        return response()->json($wastes);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  Waste $waste
-     * @return \Illuminate\Http\Response
-     */
-    public function show(Waste $waste)
+    public function store(Request $request)
     {
-        $waste = Waste::with('images')->find($waste->id);
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'owner' => 'required|string|max:255',
+            'price' => 'required|numeric',
+            'categories' => 'required|string|max:255',
+            'contact_number' => 'required|string|max:15',
+            'location' => 'required|string|max:255',
+            'item_amount' => 'required|numeric',
+            'description' => 'required|string|max:255',
+            'photo.*' => 'required|file|mimes:jpg,jpeg,png'
+        ]);
+
+        $photoUrls = [];
+        if ($request->hasFile('photo')) {
+            foreach ($request->file('photo') as $file) {
+                $path = $file->store('public/photo');
+                $photoUrls[] = str_replace('public/', '', $path);
+            }
+        }
+
+        $waste = new Waste();
+        $waste->name = $validatedData['name'];
+        $waste->owner = $validatedData['owner'];
+        $waste->price = $validatedData['price'];
+        $waste->categories = $validatedData['categories'];
+        $waste->contact_number = $validatedData['contact_number'];
+        $waste->location = $validatedData['location'];
+        $waste->item_amount = $validatedData['item_amount'];
+        $waste->description = $validatedData['description'];
+        $waste->photo = implode(',', $photoUrls); // Store as comma-separated string
+        $waste->save();
+
+        return response()->json($waste, 201);
+    }
+
+    public function show($id)
+    {
+        $waste = Waste::find($id);
+
+        if (is_null($waste)) {
+            return response()->json(['message' => 'Waste not found'], 404);
+        }
+
+        if ($waste->photo) {
+            $waste->photo = array_map(function($photo) {
+                return url('storage/' . $photo);
+            }, explode(',', $waste->photo));
+        }
 
         return response()->json($waste);
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  Waste $waste
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Waste $waste)
+    public function update(Request $request, $id)
     {
-        // Validate request data
-        $request->validate([
+        $validatedData = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'owner' => 'nullable|string|max:255',
-            'categories' => 'sometimes|required|string|max:225',
+            'owner' => 'sometimes|required|string|max:255',
+            'price' => 'sometimes|required|numeric',
+            'categories' => 'sometimes|required|string|max:255',
+            'contact_number' => 'sometimes|required|string|max:15',
             'location' => 'sometimes|required|string|max:255',
-            'contact_number' => 'sometimes|required|string|max:20',
-            'item_amount' => 'sometimes|required|string|max:255',
-            'price' => 'sometimes|required|string|max:20',
-            'description' => 'nullable|string',
-            'waste_images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+            'item_amount' => 'sometimes|required|numeric',
+            'description' => 'sometimes|required|string|max:255',
+            'photo.*' => 'nullable|file|mimes:jpg,jpeg,png', // Nullable if not updating photos
         ]);
 
-        // Update Waste entry
-        $waste->update($request->only([
-            'name',
-            'owner',
-            'categories',
-            'location',
-            'contact_number',
-            'item_amount',
-            'price',
-            'description'
-        ]));
+        $waste = Waste::find($id);
 
-        // Handle Waste images
-        if ($request->hasFile('waste_images')) {
-            foreach ($request->file('waste_images') as $image) {
-                $path = $image->store('waste_images', 'public');
-                WasteImage::create([
-                    'waste_id' => $waste->id,
-                    'image_path' => $path,
-                ]);
+        if (is_null($waste)) {
+            return response()->json(['message' => 'Waste not found'], 404);
+        }
+
+        if ($request->hasFile('photo')) {
+            $photoUrls = [];
+            foreach ($request->file('photo') as $file) {
+                $path = $file->store('public/photo');
+                $photoUrls[] = str_replace('public/', '', $path);
+            }
+            $validatedData['photo'] = implode(',', $photoUrls);
+
+            // Delete old photos
+            $oldPhotos = explode(',', $waste->photo);
+            foreach ($oldPhotos as $oldPhoto) {
+                Storage::delete('public/' . $oldPhoto);
             }
         }
 
-        return response()->json(['message' => 'Waste updated successfully!'], 200);
+        $waste->update($validatedData);
+
+        if ($waste->photo) {
+            $waste->photo = array_map(function($photo) {
+                return url('storage/' . $photo);
+            }, explode(',', $waste->photo));
+        }
+
+        return response()->json($waste);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  Waste $waste
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Waste $waste)
+    public function destroy($id)
     {
-        // Delete waste images from storage
-        foreach ($waste->images as $image) {
-            Storage::delete('public/' . $image->image_path);
-            $image->delete();
+        $waste = Waste::find($id);
+
+        if (is_null($waste)) {
+            return response()->json(['message' => 'Waste not found'], 404);
+        }
+
+        // Delete associated photos
+        if ($waste->photo) {
+            $photos = explode(',', $waste->photo);
+            foreach ($photos as $photo) {
+                Storage::delete('public/' . $photo);
+            }
         }
 
         $waste->delete();
 
-        return response()->json(['message' => 'Waste deleted successfully!'], 200);
+        return response()->json(['message' => 'Waste deleted successfully']);
     }
 }
