@@ -18,7 +18,7 @@ class CreateWastesTable extends Migration
             $table->string('location');
             $table->string('item_amount');
             $table->text('description');
-            $table->string('photo_path')->nullable(); // If storing image paths
+            $table->string('photo')->nullable(); // If storing image paths
             $table->timestamps();
         });
     }
