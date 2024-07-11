@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'name',
         'owner_name',
@@ -15,8 +16,11 @@ class Product extends Model
         'contact_number',
         'price',
         'img',
+        'description',
     ];
+
     public $timestamps = false; // Disable automatic timestamps
+
     public function ratings()
     {
         return $this->hasMany(Rating::class);
