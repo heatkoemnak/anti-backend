@@ -28,7 +28,7 @@ class ProductController extends Controller
             'description' => 'required|string|max:255', // Add this line
             'contact_number' => 'required|string|max:15',
             'location' => 'required|string|max:255',
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2000',
+            'image*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2000',
             'category_id' => 'required|exists:categories,id',
             'user_id' => 'required|exists:users,id',
         ]);
@@ -36,12 +36,13 @@ class ProductController extends Controller
 
         // Save the uploaded image
         if ($request->hasFile('image')) {
-            $validatedData['image'] = $request->file('image')->store('images', 'public');
-        }
+            $image = $request->file('image');
+            $name = time() . '.' . $image->getClientOriginalExtension();
+            $destinationPath = public_path('/storage/images');
+            $image->move($destinationPath, $name);
+            $request->image = $name;
 
-        $product = Product::create($validatedData);
-        //     return response()->json(['message' => 'Images uploaded successfully', 'paths' => $uploadedImages], 200);
-        // }
+        }
 
         $product = Product::create($request->all());
 
