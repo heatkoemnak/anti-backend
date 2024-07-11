@@ -62,7 +62,7 @@ Route::post('/cart/add', 'CartController@addToCart');
 
 //add to card
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth')->group(function () {
   Route::get('/cart-items', [CartController::class, 'index']);
   Route::post('/cart-items', [CartController::class, 'store']);
   Route::get('/cart-items/{id}', [CartController::class, 'show']);
