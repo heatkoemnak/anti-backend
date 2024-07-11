@@ -2,128 +2,85 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use App\Models\Category;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    // ===============Display a listing of the resource.================
-
     public function index()
     {
-        return response()->json(Product::all());
+        return response()->json(Product::get());
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
+        $request->validate([
             'name' => 'required|string|max:255',
-            'owner_name' => 'required|string|max:255',
-            'location' => 'required|string|max:255',
-            'contact_number' => 'required|string|max:15',
             'price' => 'required|numeric',
+            'contact_number' => 'required|string|max:15',
+            'location' => 'required|string|max:255',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2000',
+            'category_id' => 'required|exists:categories,id',
+            'user_id' => 'required|exists:users,id',
         ]);
+        // if ($request->hasFile('image')) {
+        //     $uploadedImages = [];
+        //     foreach ($request->file('image') as $image) {
+        //         $path = $image->store('uploads', 'public'); // Save the file in the 'public/uploads' directory
+        //         $uploadedImages[] = $path;
+        //     }
+        //     // Optionally, you can store paths in the database or do other operations with $uploadedImages array
 
-        $product = Product::create($validatedData);
+        //     return response()->json(['message' => 'Images uploaded successfully', 'paths' => $uploadedImages], 200);
+        // }
 
-        return response()->json($product, 201);
+        $product = Product::create($request->all());
+
+        return response()->json(['success' => 'Product created successfully.', 'product' => $product], 201);
     }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    // ================== Display the specified resource.============
 
     public function show($id)
     {
-        $product = Product::find($id);
-
-        if (is_null($product)) {
-            return response()->json(['message' => 'Product not found'], 404);
-        }
-
+        $product = Product::with('category', 'user')->findOrFail($id);
         return response()->json($product);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request, $id)
     {
-        $validatedData = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'owner_name' => 'sometimes|required|string|max:255',
-            'location' => 'sometimes|required|string|max:255',
-            'contact_number' => 'sometimes|required|string|max:15',
-            'price' => 'sometimes|required|numeric',
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric',
+            'contact_number' => 'required|string|max:15',
+            'location' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
+            'user_id' => 'required|exists:users,id',
         ]);
 
-        $product = Product::find($id);
+        $product = Product::findOrFail($id);
+        $product->update($request->all());
 
-        if (is_null($product)) {
-            return response()->json(['message' => 'Product not found'], 404);
-        }
-
-        $product->update($validatedData);
-
-        return response()->json($product);
+        return response()->json(['success' => 'Product updated successfully.', 'product' => $product]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
-        $product = Product::find($id);
-
-        if (is_null($product)) {
-            return response()->json(['message' => 'Product not found'], 404);
-        }
-
+        $product = Product::findOrFail($id);
         $product->delete();
 
-        return response()->json(['message' => 'Product deleted successfully']);
+        return response()->json(['success' => 'Product deleted successfully.']);
+    }
+    public function getRelatedProductsByCategory(Category $category)
+    {
+        // Validate that the category exists
+        if (!Category::where('id', $category->id)->exists()) {
+            return response()->json(['error' => 'Category not found.'], 404);
+        }
+
+        // Retrieve products by category_id
+        $products = Product::where('category_id', $category->id)->get();
+
+        return response()->json($products,200);
     }
 }
