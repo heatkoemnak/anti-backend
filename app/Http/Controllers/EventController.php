@@ -15,16 +15,15 @@ class EventController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function index()
-    {
-        try {
-            $events = Event::paginate(10); // Adjust pagination as needed
-            return response()->json($events, 200);
-        } catch (\Exception $e) {
-            Log::error('Error fetching events: ' . $e->getMessage());
-            return response()->json(['message' => 'Error fetching events', 'error' => $e->getMessage()], 500);
-        }
+{
+    try {
+        $events = Event::all(); // Retrieve all events without pagination
+        return response()->json($events, 200);
+    } catch (\Exception $e) {
+        Log::error('Error fetching events: ' . $e->getMessage());
+        return response()->json(['message' => 'Error fetching events', 'error' => $e->getMessage()], 500);
     }
-
+}
     /**
      * Store a newly created event in storage.
      *
