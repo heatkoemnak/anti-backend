@@ -23,9 +23,12 @@ class ProductController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'price' => 'required|numeric',
-            'img' => 'required|file',
-            'description' => 'required|string', // Add this line
-
+            'description' => 'required|string|max:255',
+            'contact_number' => 'required|string|max:15',
+            'location' => 'required|string|max:255',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'category_id' => 'required|exists:categories,id',
+            'user_id' => 'required|exists:users,id',
         ]);
 
         $uploadedFileUrl = Cloudinary::upload($request->file('image')->getRealPath(), [
@@ -60,15 +63,15 @@ class ProductController extends Controller
 
     public function update(Request $request, $id)
     {
-        $validatedData = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'owner_name' => 'sometimes|required|string|max:255',
-            'location' => 'sometimes|required|string|max:255',
-            'contact_number' => 'sometimes|required|string|max:15',
-            'price' => 'sometimes|required|numeric',
-            'img' => 'required|file',
-            'description' => 'nullable|string', // Nullable if default value is set
-
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric',
+            'description' => 'required|string|max:255',
+            'contact_number' => 'required|string|max:15',
+            'location' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
+            'user_id' => 'required|exists:users,id',
+            'image' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
         $product = Product::findOrFail($id);

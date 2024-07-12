@@ -18,8 +18,11 @@ return new class extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->decimal('price', 8, 2);
-            $table->string('img')->nullable(); //add this line
-            $table->text('description')->default('No description provided');
+            $table->string('contact_number', 15);
+            $table->string('location');
+            $table->string('image');
+            $table->foreignId('category_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
