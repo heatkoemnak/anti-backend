@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Auth;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Rating;
@@ -14,9 +15,6 @@ class ProductController extends Controller
     public function index()
     {
         $products = Product::all();
-        foreach ($products as $product) {
-            $product->image = url('storage/' . $product->image);
-        }
         return response()->json($products);
     }
 
@@ -25,42 +23,41 @@ class ProductController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'price' => 'required|numeric',
-            'description' => 'required|string|max:255', // Add this line
+            'description' => 'required|string|max:255',
             'contact_number' => 'required|string|max:15',
             'location' => 'required|string|max:255',
-            'image*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2000',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             'category_id' => 'required|exists:categories,id',
             'user_id' => 'required|exists:users,id',
         ]);
 
+        $uploadedFileUrl = Cloudinary::upload($request->file('image')->getRealPath(), [
+            'folder' => 'products', // Custom folder name
+            'upload_preset' => env('CLOUDINARY_UPLOAD_PRESET')
+        ])->getSecurePath();
 
-        // Save the uploaded image
-        if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $name = time() . '.' . $image->getClientOriginalExtension();
-            $destinationPath = public_path('/storage/images');
-            $image->move($destinationPath, $name);
-            $request->image = $name;
-
-        }
-
-        $product = Product::create($request->all());
+        $product = Product::create([
+            'name' => $request->name,
+            'price' => $request->price,
+            'description' => $request->description,
+            'contact_number' => $request->contact_number,
+            'location' => $request->location,
+            'image' => $uploadedFileUrl,
+            'category_id' => $request->category_id,
+            'user_id' => $request->user_id,
+        ]);
 
         return response()->json(['success' => 'Product created successfully.', 'product' => $product], 201);
     }
 
     public function show($id)
     {
-        $product = Product::find($id);
+        $product = Product::with('category', 'user')->find($id);
 
         if (is_null($product)) {
             return response()->json(['message' => 'Product not found'], 404);
         }
 
-        // Add the full URL for the image
-        $product->image = url('storage/' . $product->image);
-
-        $product = Product::with('category', 'user')->findOrFail($id);
         return response()->json($product);
     }
 
@@ -69,27 +66,27 @@ class ProductController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'price' => 'required|numeric',
+            'description' => 'required|string|max:255',
             'contact_number' => 'required|string|max:15',
             'location' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'user_id' => 'required|exists:users,id',
+            'image' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
+
         $product = Product::findOrFail($id);
-        $product->update($request->all());
 
-        if (is_null($product)) {
-            return response()->json(['message' => 'Product not found'], 404);
-        }
-
+        $product->update($request->except('image'));
 
         if ($request->hasFile('image')) {
-            $validatedData['image'] = $request->file('image')->store('images', 'public');
+            $uploadedFileUrl = Cloudinary::upload($request->file('image')->getRealPath(), [
+                'folder' => 'products', // Custom folder name
+                'upload_preset' => env('CLOUDINARY_UPLOAD_PRESET')
+            ])->getSecurePath();
+            $product->image = $uploadedFileUrl;
+            $product->save();
         }
 
-
-        $product->update($validatedData);
-
-        return response()->json($product);
         return response()->json(['success' => 'Product updated successfully.', 'product' => $product]);
     }
 
@@ -100,19 +97,17 @@ class ProductController extends Controller
 
         return response()->json(['success' => 'Product deleted successfully.']);
     }
+
     public function getRelatedProductsByCategory(Category $category)
     {
-        // Validate that the category exists
         if (!Category::where('id', $category->id)->exists()) {
             return response()->json(['error' => 'Category not found.'], 404);
         }
 
-        // Retrieve products by category_id
         $products = Product::where('category_id', $category->id)->get();
-
-        return response()->json($products,200);
+        return response()->json($products, 200);
     }
-    //rate & comment on product
+
     public function rateProduct(Request $request, $id)
     {
         $request->validate([
@@ -124,28 +119,15 @@ class ProductController extends Controller
             return response()->json(['message' => 'Product not found'], 404);
         }
 
-        // // Assuming you have a Rating model and ratings table
-        // $rating = new Rating;
-        // $rating->product_id = $product->id;
-        // $rating->rating = $request->input('rating');
-        // $rating->save();
-
-        // // Update product's average rating
-        // $averageRating = Rating::where('product_id', $product->id)->avg('rating');
-        // $product->rating = $averageRating;
-        // $product->save();
-
-        // return response()->json(['message' => 'Rating added successfully', 'average_rating' => $averageRating]);
         $product->ratings()->create([
             'user_id' => auth()->id(),
             'rating' => $request->rating,
         ]);
 
-        // Optionally update the product's average rating
         $product->average_rating = $product->ratings()->avg('rating');
         $product->save();
 
-        return response()->json(['message' => 'Rating submitted successfully'], 200);
+        return response()->json(['message' => 'Rating submitted successfully', 'average_rating' => $product->average_rating], 200);
     }
 
     public function commentProduct(Request $request, $id)
@@ -159,13 +141,11 @@ class ProductController extends Controller
             return response()->json(['message' => 'Product not found'], 404);
         }
 
-        $comment = new Comment;
-        $comment->product_id = $product->id;
-        $comment->user_id = auth()->id();
-        $comment->comment = $request->input('comment');
-        $comment->save();
+        $product->comments()->create([
+            'user_id' => auth()->id(),
+            'comment' => $request->comment,
+        ]);
 
-        return response()->json(['message' => 'Comment added successfully']);
+        return response()->json(['message' => 'Comment added successfully'], 200);
     }
 }
-
