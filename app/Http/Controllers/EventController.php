@@ -9,51 +9,54 @@ use Illuminate\Support\Facades\Log;
 
 class EventController extends Controller
 {
-    /**
-     * Display a listing of the events.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function index()
-{
-    try {
-        $events = Event::all(); // Retrieve all events without pagination
-        return response()->json($events, 200);
-    } catch (\Exception $e) {
-        Log::error('Error fetching events: ' . $e->getMessage());
-        return response()->json(['message' => 'Error fetching events', 'error' => $e->getMessage()], 500);
+    {
+        try {
+            $events = Event::all();
+
+            // Format photo URLs if photos exist
+            foreach ($events as $event) {
+                if ($event->photo) {
+                    $event->photo = url('storage/' . $event->photo);
+                }
+            }
+
+            return response()->json($events, 200);
+        } catch (\Exception $e) {
+            Log::error('Error fetching events: ' . $e->getMessage());
+            return response()->json(['message' => 'Error fetching events', 'error' => $e->getMessage()], 500);
+        }
     }
-}
-    /**
-     * Store a newly created event in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+
     public function store(Request $request)
     {
         try {
-            $request->validate([
+            $validatedData = $request->validate([
                 'event_name' => 'required|string|max:255',
                 'description' => 'required|string',
                 'date' => 'required|date',
                 'location' => 'required|string|max:255',
-                'photo.*' => 'nullable|file|mimes:jpg,jpeg,png', // Validation for images
+                'photo' => 'nullable|file|mimes:jpg,jpeg,png|max:2048', // Adjust size limit as needed
             ]);
 
             $event = new Event();
-            $event->event_name = $request->event_name;
-            $event->description = $request->description;
-            $event->date = $request->date;
-            $event->location = $request->location;
+            $event->event_name = $validatedData['event_name'];
+            $event->description = $validatedData['description'];
+            $event->date = $validatedData['date'];
+            $event->location = $validatedData['location'];
 
             // Handle event photo if uploaded
             if ($request->hasFile('photo')) {
                 $photoPath = $request->file('photo')->store('events/photos', 'public');
-                $event->photo = $photoPath;
+                $event->photo = str_replace('public/', '', $photoPath);
             }
 
             $event->save();
+
+            // Return the event with formatted photo URL
+            if ($event->photo) {
+                $event->photo = url('storage/' . $event->photo);
+            }
 
             return response()->json(['message' => 'Event created successfully', 'event' => $event], 201);
         } catch (\Exception $e) {
@@ -62,65 +65,79 @@ class EventController extends Controller
         }
     }
 
-    /**
-     * Update the specified event in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function update(Request $request, $id)
+    public function show($id)
     {
         try {
             $event = Event::findOrFail($id);
 
-            $request->validate([
-                'event_name' => 'required|string|max:255',
-                'description' => 'required|string',
-                'date' => 'required|date',
-                'location' => 'required|string|max:255',
-                'photo.*' => 'nullable|file|mimes:jpg,jpeg,png', // Validation for images
-            ]);
-
-            $event->event_name = $request->event_name;
-            $event->description = $request->description;
-            $event->date = $request->date;
-            $event->location = $request->location;
-
-            // Handle event photo update if uploaded
-            if ($request->hasFile('photo')) {
-                // Delete previous photo if exists
-                if ($event->photo && Storage::disk('public')->exists($event->photo)) {
-                    Storage::disk('public')->delete($event->photo);
-                }
-
-                $photoPath = $request->file('photo')->store('events/photos', 'public');
-                $event->photo = $photoPath;
+            // Format photo URL if photo exists
+            if ($event->photo) {
+                $event->photo = url('storage/' . $event->photo);
             }
 
-            $event->save();
-
-            return response()->json(['message' => 'Event updated successfully', 'event' => $event], 200);
+            return response()->json($event, 200);
         } catch (\Exception $e) {
-            Log::error('Error updating event: ' . $e->getMessage());
-            return response()->json(['message' => 'Error updating event', 'error' => $e->getMessage()], 500);
+            Log::error('Error fetching event: ' . $e->getMessage());
+            return response()->json(['message' => 'Error fetching event', 'error' => $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Remove the specified event from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\JsonResponse
-     */
+    public function update(Request $request, $id)
+    {
+        // Validate incoming request data
+        $validatedData = $request->validate([
+            'event_name' => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|required|string',
+            'date' => 'sometimes|required|date',
+            'location' => 'sometimes|required|string|max:255',
+            'photo.*' => 'nullable|file|mimes:jpg,jpeg,png', // Nullable if not updating photos
+        ]);
+
+        $event = Event::find($id);
+
+        if (is_null($event)) {
+            return response()->json(['message' => 'Event not found'], 404);
+        }
+
+        // Handle photo upload if new photos are provided
+        if ($request->hasFile('photo')) {
+            $photoUrls = [];
+            foreach ($request->file('photo') as $file) {
+                $path = $file->store('public/events/photos');
+                $photoUrls[] = str_replace('public/', '', $path);
+            }
+            $validatedData['photo'] = implode(',', $photoUrls);
+
+            // Delete old photos if they exist
+            if ($event->photo) {
+                $oldPhotos = explode(',', $event->photo);
+                foreach ($oldPhotos as $oldPhoto) {
+                    Storage::delete('public/' . $oldPhoto);
+                }
+            }
+        }
+
+        // Update event fields based on validated data
+        $event->update($validatedData);
+
+        // Format photo URLs for response
+        if ($event->photo) {
+            $event->photo = array_map(function ($photo) {
+                return url('storage/' . $photo);
+            }, explode(',', $event->photo));
+        }
+
+        return response()->json(['message' => 'Event updated successfully', 'event' => $event]);
+    }
+
     public function destroy($id)
     {
         try {
             $event = Event::findOrFail($id);
 
             // Delete associated photo if exists
-            if ($event->photo && Storage::disk('public')->exists($event->photo)) {
-                Storage::disk('public')->delete($event->photo);
+            if ($event->photo && Storage::disk('public')->exists('events/' . $event->photo)) {
+                Storage::disk('public')->delete('events/' . $event->photo);
             }
 
             $event->delete();

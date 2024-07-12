@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('contact_number');
             $table->decimal('price', 8, 2);
             $table->string('img')->nullable(); //add this line
-            $table->string('description')->default('No description provided');
+            $table->text('description')->default('No description provided');
             $table->timestamps();
         });
     }

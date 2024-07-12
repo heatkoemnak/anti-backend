@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('event_name');
             $table->text('description'); // Changed to text for longer descriptions
             $table->string('location');
-            $table->dateTime('date'); // Changed to dateTime based on usage
+            $table->date('date'); // Changed to dateTime based on usage
             $table->timestamps();
         });
 

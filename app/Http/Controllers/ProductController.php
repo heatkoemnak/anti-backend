@@ -50,7 +50,7 @@ class ProductController extends Controller
             'contact_number' => 'required|string|max:15',
             'price' => 'required|numeric',
             'img' => 'required|file',
-            'description' => 'required|string|max:255', // Add this line
+            'description' => 'required|string', // Add this line
 
         ]);
 
@@ -116,7 +116,7 @@ class ProductController extends Controller
             'contact_number' => 'sometimes|required|string|max:15',
             'price' => 'sometimes|required|numeric',
             'img' => 'required|file',
-            'description' => 'nullable|string|max:255', // Nullable if default value is set
+            'description' => 'nullable|string', // Nullable if default value is set
 
         ]);
 

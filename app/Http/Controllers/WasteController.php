@@ -34,7 +34,7 @@ class WasteController extends Controller
             'contact_number' => 'required|string|max:15',
             'location' => 'required|string|max:255',
             'item_amount' => 'required|numeric',
-            'description' => 'required|string|max:255',
+            'description' => 'required|string',
             'photo.*' => 'required|file|mimes:jpg,jpeg,png'
         ]);
 
@@ -88,7 +88,7 @@ class WasteController extends Controller
             'contact_number' => 'sometimes|required|string|max:15',
             'location' => 'sometimes|required|string|max:255',
             'item_amount' => 'sometimes|required|numeric',
-            'description' => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|required|string',
             'photo.*' => 'nullable|file|mimes:jpg,jpeg,png', // Nullable if not updating photos
         ]);
 
