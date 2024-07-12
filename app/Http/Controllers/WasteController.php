@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Waste;
+use App\Models\WasteCate;
+use App\Models\WasteImage;
 use Illuminate\Support\Facades\Storage;
 
 class WasteController extends Controller

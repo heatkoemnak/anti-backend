@@ -2,111 +2,62 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Auth;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Rating;
 use App\Models\Comment;
+use App\Models\Category;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    // ===============Display a listing of the resource.================
-
     public function index()
     {
         $products = Product::all();
-        foreach ($products as $product) {
-            $product->img = url('storage/' . $product->img);
-        }
         return response()->json($products);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
+        $request->validate([
             'name' => 'required|string|max:255',
-            'owner_name' => 'required|string|max:255',
-            'location' => 'required|string|max:255',
-            'contact_number' => 'required|string|max:15',
             'price' => 'required|numeric',
             'img' => 'required|file',
             'description' => 'required|string', // Add this line
 
         ]);
 
-        // Log validated data
-        // \Log::info('Validated Data: ', $validatedData);
+        $uploadedFileUrl = Cloudinary::upload($request->file('image')->getRealPath(), [
+            'folder' => 'products', // Custom folder name
+            'upload_preset' => env('CLOUDINARY_UPLOAD_PRESET')
+        ])->getSecurePath();
 
-        // Save the uploaded image
-        if ($request->hasFile('img')) {
-            $validatedData['img'] = $request->file('img')->store('images', 'public');
-        }
+        $product = Product::create([
+            'name' => $request->name,
+            'price' => $request->price,
+            'description' => $request->description,
+            'contact_number' => $request->contact_number,
+            'location' => $request->location,
+            'image' => $uploadedFileUrl,
+            'category_id' => $request->category_id,
+            'user_id' => $request->user_id,
+        ]);
 
-        $product = Product::create($validatedData);
-
-        return response()->json($product, 201);
+        return response()->json(['success' => 'Product created successfully.', 'product' => $product], 201);
     }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    // ================== Display the specified resource.============
 
     public function show($id)
     {
-        $product = Product::find($id);
+        $product = Product::with('category', 'user')->find($id);
 
         if (is_null($product)) {
             return response()->json(['message' => 'Product not found'], 404);
         }
 
-        // Add the full URL for the image
-        $product->img = url('storage/' . $product->img);
-
         return response()->json($product);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request, $id)
     {
         $validatedData = $request->validate([
@@ -120,42 +71,40 @@ class ProductController extends Controller
 
         ]);
 
-        $product = Product::find($id);
+        $product = Product::findOrFail($id);
 
-        if (is_null($product)) {
-            return response()->json(['message' => 'Product not found'], 404);
+        $product->update($request->except('image'));
+
+        if ($request->hasFile('image')) {
+            $uploadedFileUrl = Cloudinary::upload($request->file('image')->getRealPath(), [
+                'folder' => 'products', // Custom folder name
+                'upload_preset' => env('CLOUDINARY_UPLOAD_PRESET')
+            ])->getSecurePath();
+            $product->image = $uploadedFileUrl;
+            $product->save();
         }
 
-
-        if ($request->hasFile('img')) {
-            $validatedData['img'] = $request->file('img')->store('images', 'public');
-        }
-
-
-        $product->update($validatedData);
-
-        return response()->json($product);
+        return response()->json(['success' => 'Product updated successfully.', 'product' => $product]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
-        $product = Product::find($id);
-
-        if (is_null($product)) {
-            return response()->json(['message' => 'Product not found'], 404);
-        }
-
+        $product = Product::findOrFail($id);
         $product->delete();
 
-        return response()->json(['message' => 'Product deleted successfully']);
+        return response()->json(['success' => 'Product deleted successfully.']);
     }
-    //rate & comment on product
+
+    public function getRelatedProductsByCategory(Category $category)
+    {
+        if (!Category::where('id', $category->id)->exists()) {
+            return response()->json(['error' => 'Category not found.'], 404);
+        }
+
+        $products = Product::where('category_id', $category->id)->get();
+        return response()->json($products, 200);
+    }
+
     public function rateProduct(Request $request, $id)
     {
         $request->validate([
@@ -167,28 +116,15 @@ class ProductController extends Controller
             return response()->json(['message' => 'Product not found'], 404);
         }
 
-        // // Assuming you have a Rating model and ratings table
-        // $rating = new Rating;
-        // $rating->product_id = $product->id;
-        // $rating->rating = $request->input('rating');
-        // $rating->save();
-
-        // // Update product's average rating
-        // $averageRating = Rating::where('product_id', $product->id)->avg('rating');
-        // $product->rating = $averageRating;
-        // $product->save();
-
-        // return response()->json(['message' => 'Rating added successfully', 'average_rating' => $averageRating]);
         $product->ratings()->create([
             'user_id' => auth()->id(),
             'rating' => $request->rating,
         ]);
 
-        // Optionally update the product's average rating
         $product->average_rating = $product->ratings()->avg('rating');
         $product->save();
 
-        return response()->json(['message' => 'Rating submitted successfully'], 200);
+        return response()->json(['message' => 'Rating submitted successfully', 'average_rating' => $product->average_rating], 200);
     }
 
     public function commentProduct(Request $request, $id)
@@ -202,13 +138,11 @@ class ProductController extends Controller
             return response()->json(['message' => 'Product not found'], 404);
         }
 
-        $comment = new Comment;
-        $comment->product_id = $product->id;
-        $comment->user_id = auth()->id();
-        $comment->comment = $request->input('comment');
-        $comment->save();
+        $product->comments()->create([
+            'user_id' => auth()->id(),
+            'comment' => $request->comment,
+        ]);
 
-        return response()->json(['message' => 'Comment added successfully']);
+        return response()->json(['message' => 'Comment added successfully'], 200);
     }
 }
-

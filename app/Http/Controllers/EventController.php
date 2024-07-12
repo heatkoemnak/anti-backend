@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -147,5 +146,37 @@ class EventController extends Controller
             Log::error('Error deleting event: ' . $e->getMessage());
             return response()->json(['message' => 'Error deleting event', 'error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Search for events.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function search(Request $request)
+    {
+        $query = Event::query();
+
+        if ($request->has('event_name')) {
+            $query->where('name', 'like', '%' . $request->query('event_name') . '%');
+        }
+
+        if ($request->has('location')) {
+            $query->where('location', 'like', '%' . $request->query('location') . '%');
+        }
+
+        if ($request->has('date')) {
+            $query->whereDate('date', $request->query('date'));
+        }
+
+        $events = $query->with('images')->get();
+        foreach ($events as $event) {
+            foreach ($event->images as $image) {
+                $image->image_url = Storage::url($image->image_path);
+            }
+        }
+
+        return response()->json($events);
     }
 }

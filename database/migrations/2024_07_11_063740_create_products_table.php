@@ -16,9 +16,7 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('owner_name');
-            $table->string('location');
-            $table->string('contact_number');
+            $table->text('description')->nullable();
             $table->decimal('price', 8, 2);
             $table->string('img')->nullable(); //add this line
             $table->text('description')->default('No description provided');

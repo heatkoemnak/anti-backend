@@ -4,30 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
+use App\Models\User;
+use App\Models\Category;
 class Product extends Model
 {
     use HasFactory;
+    protected $fillable = ['name', 'description', 'price','location',"image",'contact_number', 'category_id', 'user_id'];
 
-    protected $fillable = [
-        'name',
-        'owner_name',
-        'location',
-        'contact_number',
-        'price',
-        'img',
-        'description',
-    ];
-
-    public $timestamps = false; // Disable automatic timestamps
-
-    public function ratings()
+    public function category()
     {
-        return $this->hasMany(Rating::class);
+        return $this->belongsTo(Category::class);
     }
 
-    public function comments()
+    public function user()
     {
-        return $this->hasMany(Comment::class);
+        return $this->belongsTo(User::class);
     }
 }
