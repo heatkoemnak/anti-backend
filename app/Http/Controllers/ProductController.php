@@ -15,80 +15,77 @@ class ProductController extends Controller
     public function index()
     {
         $products = Product::all();
+        foreach ($products as $product) {
+            $product->img = array_map(fn($path) => url('storage/' . $path), json_decode($product->img, true));
+        }
         return response()->json($products);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'price' => 'required|numeric',
-            'description' => 'required|string|max:255',
+            'categories' => 'required|string|max:255',
             'contact_number' => 'required|string|max:15',
             'location' => 'required|string|max:255',
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'category_id' => 'required|exists:categories,id',
-            'user_id' => 'required|exists:users,id',
+            'description' => 'required|string',
+            'img.*' => 'required|file|mimes:jpg,jpeg,png'
         ]);
 
-        $uploadedFileUrl = Cloudinary::upload($request->file('image')->getRealPath(), [
-            'folder' => 'products', // Custom folder name
-            'upload_preset' => env('CLOUDINARY_UPLOAD_PRESET')
-        ])->getSecurePath();
+        $photoUrls = [];
+        if ($request->hasFile('img')) {
+            foreach ($request->file('img') as $file) {
+                $path = $file->store('public/images');
+                $photoUrls[] = str_replace('public/', '', $path);
+            }
+        }
+        $validatedData['img'] = json_encode($photoUrls);
 
-        $product = Product::create([
-            'name' => $request->name,
-            'price' => $request->price,
-            'description' => $request->description,
-            'contact_number' => $request->contact_number,
-            'location' => $request->location,
-            'image' => $uploadedFileUrl,
-            'category_id' => $request->category_id,
-            'user_id' => $request->user_id,
-        ]);
-
-        return response()->json(['success' => 'Product created successfully.', 'product' => $product], 201);
+        $product = Product::create($validatedData);
+        return response()->json($product, 201);
     }
 
     public function show($id)
     {
-        $product = Product::with('category', 'user')->find($id);
-
+        $product = Product::find($id);
         if (is_null($product)) {
             return response()->json(['message' => 'Product not found'], 404);
         }
-
+        $product->img = array_map(fn($path) => url('storage/' . $path), json_decode($product->img, true));
         return response()->json($product);
     }
 
     public function update(Request $request, $id)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric',
-            'description' => 'required|string|max:255',
-            'contact_number' => 'required|string|max:15',
-            'location' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
-            'user_id' => 'required|exists:users,id',
-            'image' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'price' => 'required|numeric',
+        'description' => 'required|string',
+        'contact_number' => 'required|string|max:15',
+        'location' => 'required|string|max:255',
+        'category_id' => 'exists:categories,id',
+        'user_id' => 'exists:users,id',
+        'img.*' => 'file|mimes:jpg,jpeg,png'
+    ]);
 
-        $product = Product::findOrFail($id);
+    $product = Product::findOrFail($id);
 
-        $product->update($request->except('image'));
+    $product->update($request->except('img'));
 
-        if ($request->hasFile('image')) {
-            $uploadedFileUrl = Cloudinary::upload($request->file('image')->getRealPath(), [
-                'folder' => 'products', // Custom folder name
-                'upload_preset' => env('CLOUDINARY_UPLOAD_PRESET')
-            ])->getSecurePath();
-            $product->image = $uploadedFileUrl;
-            $product->save();
+    if ($request->hasFile('img')) {
+        $photoUrls = [];
+        foreach ($request->file('img') as $file) {
+            $path = $file->store('public/images');
+            $photoUrls[] = str_replace('public/', '', $path);
         }
-
-        return response()->json(['success' => 'Product updated successfully.', 'product' => $product]);
+        $product->img = json_encode($photoUrls);
     }
+
+    $product->save();
+
+    return response()->json(['success' => 'Product updated successfully.', 'product' => $product]);
+}
 
     public function destroy($id)
     {

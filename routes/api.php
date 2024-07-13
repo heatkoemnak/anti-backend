@@ -9,7 +9,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\WasteController;
-use App\Http\Controllers\CartController;
+// use App\Http\Controllers\CartController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,11 +47,11 @@ Route::get('user', [UserAuthController::class, 'user'])
 //   return response()->json(['message' => 'API is working!']);
 // });
 
-    Route::get('products', [ProductController::class, 'index']);
-    Route::post('products', [ProductController::class, 'store']);
-    Route::get('products/{id}', [ProductController::class, 'show']);
-    Route::put('products/{id}', [ProductController::class, 'update']);
-    Route::delete('products/{id}', [ProductController::class, 'destroy']);
+    // Route::get('products', [ProductController::class, 'index']);
+    // Route::post('products', [ProductController::class, 'store']);
+    // Route::get('products/{id}', [ProductController::class, 'show']);
+    // Route::put('products/{id}', [ProductController::class, 'update']);
+    // Route::delete('products/{id}', [ProductController::class, 'destroy']);
     Route::get('products/category/{category}', [ProductController::class, 'getRelatedProductsByCategory']);
 // Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
@@ -69,14 +69,14 @@ Route::apiResource('wastes', WasteController::class);
 // extra - rate & comment on product
 Route::post('products/{id}/rate', [ProductController::class, 'rateProduct']);
 Route::post('products/{id}/comment', [ProductController::class, 'commentProduct']);
-Route::post('cart/add', 'CartController@addToCart');
+// Route::post('cart/add', 'CartController@addToCart');
 
 //add to card
 
 // Route::middleware('auth')->group(function () {
-  Route::get('cart-items', [CartController::class, 'index']);
-  Route::post('cart-items', [CartController::class, 'store']);
-  Route::get('cart-items/{id}', [CartController::class, 'show']);
-  Route::put('cart-items/{id}', [CartController::class, 'update']);
-  Route::delete('cart-items/{id}', [CartController::class, 'destroy']);
+//   Route::get('cart-items', [CartController::class, 'index']);
+//   Route::post('cart-items', [CartController::class, 'store']);
+//   Route::get('cart-items/{id}', [CartController::class, 'show']);
+//   Route::put('cart-items/{id}', [CartController::class, 'update']);
+//   Route::delete('cart-items/{id}', [CartController::class, 'destroy']);
 // });

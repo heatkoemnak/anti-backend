@@ -9,7 +9,10 @@ use App\Models\Category;
 class Product extends Model
 {
     use HasFactory;
-    protected $fillable = ['name', 'description', 'price','location',"image",'contact_number', 'category_id', 'user_id'];
+    // protected $fillable = ['name', 'description', 'price','location',"image",'contact_number', 'categories', 'user_id'];
+    protected $fillable = [
+        'name', 'location', 'contact_number', 'description', 'price', 'categories', 'img',
+    ];
 
     public function category()
     {
